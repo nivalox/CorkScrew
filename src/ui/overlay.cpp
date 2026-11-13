@@ -20,6 +20,10 @@ static jobject g_wm, g_ctx, g_btn, g_panel, g_blp, g_plp, g_content;
 static int g_started = 0, g_open = 0, g_attached = 0, g_closing = 0;
 static int g_pivx = 0, g_pivy = 0;
 
+static const unsigned char HOME_PNG[] = {
+#include "home_png.inc"
+};
+
 static int vcall(JNIEnv *env, jobject o, const char *cls, const char *name, const char *sig, ...) {
     jclass c = env->FindClass(cls);
     jmethodID m = c ? env->GetMethodID(c, name, sig) : nullptr;
@@ -156,6 +160,28 @@ static jobject clicker(JNIEnv *env, int id) {
     return mk(env, "com/rokori/client/Click", "(I)V", id);
 }
 
+/* decode the embedded PNG into a drawable of size x size px */
+static jobject icon(JNIEnv *env, jobject ctx, int size) {
+    jsize n = (jsize)sizeof(HOME_PNG);
+    jbyteArray arr = env->NewByteArray(n);
+    if (!arr) return nullptr;
+    env->SetByteArrayRegion(arr, 0, n, (const jbyte *)HOME_PNG);
+
+    jclass bf = env->FindClass("android/graphics/BitmapFactory");
+    jmethodID dm = bf ? env->GetStaticMethodID(bf, "decodeByteArray",
+        "([BII)Landroid/graphics/Bitmap;") : nullptr;
+    if (!dm) { env->ExceptionClear(); return nullptr; }
+    jobject bmp = env->CallStaticObjectMethod(bf, dm, arr, 0, (jint)n);
+    if (env->ExceptionCheck()) { env->ExceptionClear(); return nullptr; }
+    if (!bmp) return nullptr;
+
+    jobject res = ocall(env, ctx, CTXC, "getResources", "()Landroid/content/res/Resources;");
+    jobject d = res ? mk(env, "android/graphics/drawable/BitmapDrawable",
+        "(Landroid/content/res/Resources;Landroid/graphics/Bitmap;)V", res, bmp) : nullptr;
+    if (d) vcall(env, d, "android/graphics/drawable/Drawable", "setBounds", "(IIII)V", 0, 0, size, size);
+    return d;
+}
+
 static int build(JNIEnv *env, jobject ctx0) {
     jobject ctx = ocall(env, ctx0, CTXC, "getApplicationContext", "()Landroid/content/Context;");
     if (!ctx) ctx = ctx0;
@@ -227,6 +253,17 @@ static int build(JNIEnv *env, jobject ctx0) {
         jobject b = label(env, ctx, "android/widget/Button", tabs[i], 14.0);
         if (!b) continue;
         vcall(env, b, VW, "setBackgroundColor", "(I)V", (jint)0xFF3A3A3Au);
+
+        if (i == 0) {   /* Home tab icon */
+            jobject ic = icon(env, ctx, 56);
+            if (ic) {
+                vcall(env, b, TV, "setCompoundDrawables",
+                    "(Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;)V",
+                    ic, (jobject)nullptr, (jobject)nullptr, (jobject)nullptr);
+                vcall(env, b, TV, "setCompoundDrawablePadding", "(I)V", 16);
+            }
+        }
+
         jobject cl = clicker(env, i + 1);
         if (cl) vcall(env, b, VW, "setOnClickListener", "(Landroid/view/View$OnClickListener;)V", cl);
         addw(env, side, b, -1, -2, 0.0);
