@@ -1,9 +1,14 @@
 #include <jni.h>
 #include <stdarg.h>
 
-#define PW 900   /* panel width  (px) */
-#define PH 600   /* panel height (px) */
-#define BS 110   /* button size  (px) */
+#define DEF_PW 900   /* default panel size (replaced on every open) */
+#define DEF_PH 600
+#define LAND_W 50    /* landscape: panel is 50% of screen width, 70% of height */
+#define LAND_H 70
+#define PORT_W 92    /* portrait: 92% of width, 45% of height */
+#define PORT_H 45
+#define SIDE_W 300   /* sidebar width (px) */
+#define BS 110       /* button size (px) */
 
 #define LP  "android/view/WindowManager$LayoutParams"
 #define LL  "android/widget/LinearLayout"
@@ -16,9 +21,9 @@
 #define CTX "(Landroid/content/Context;)V"
 #define DRAGSIG "(Landroid/view/WindowManager;Landroid/view/WindowManager$LayoutParams;Landroid/view/View;)V"
 
-static jobject g_wm, g_ctx, g_btn, g_panel, g_blp, g_plp, g_content;
+static jobject g_wm, g_ctx, g_btn, g_panel, g_blp, g_plp, g_content, g_page, g_edit;
 static int g_started = 0, g_open = 0, g_attached = 0, g_closing = 0;
-static int g_pivx = 0, g_pivy = 0;
+static int g_pivx = 0, g_pivy = 0, g_pw = DEF_PW, g_ph = DEF_PH, g_tab = 1;
 
 static const unsigned char HOME_PNG[] = {
 #include "home_png.inc"
@@ -75,6 +80,10 @@ static int clampi(int v, int lo, int hi) {
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
+static void vis(JNIEnv *env, jobject v, int on) {
+    vcall(env, v, VW, "setVisibility", "(I)V", on ? 0 : 8);
+}
+
 static int addv(JNIEnv *env, jobject v, jobject lp) {
     return vcall(env, g_wm, "android/view/ViewManager", "addView",
         "(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V", v, lp);
@@ -88,6 +97,16 @@ static void detach(JNIEnv *env) {
     if (!g_attached) return;
     remv(env, g_open ? g_panel : g_btn);
     g_attached = 0;
+}
+
+/* The Text Editor tab needs a focusable window (for the keyboard).
+   Other tabs stay NOT_FOCUSABLE so the game keeps input.
+   32 = NOT_TOUCH_MODAL, 40 = NOT_TOUCH_MODAL | NOT_FOCUSABLE */
+static void applyFocus(JNIEnv *env) {
+    setI(env, g_plp, LP, "flags", g_tab == 2 ? 32 : 40);
+    if (g_attached && g_open)
+        vcall(env, g_wm, "android/view/ViewManager", "updateViewLayout",
+            "(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V", g_panel, g_plp);
 }
 
 /* reset panel to its normal, fully visible state */
@@ -248,7 +267,7 @@ static int build(JNIEnv *env, jobject ctx0) {
     if (!side) return 0;
     vcall(env, side, LL, "setOrientation", "(I)V", 1);
     vcall(env, side, VW, "setBackgroundColor", "(I)V", (jint)0xFF2B2B2Bu);
-    const char *tabs[3] = { "Home", "Tab 2", "Tab 3" };
+    const char *tabs[3] = { "Home", "Text Editor", "Tab 3" };
     for (int i = 0; i < 3; i++) {
         jobject b = label(env, ctx, "android/widget/Button", tabs[i], 14.0);
         if (!b) continue;
@@ -268,21 +287,58 @@ static int build(JNIEnv *env, jobject ctx0) {
         if (cl) vcall(env, b, VW, "setOnClickListener", "(Landroid/view/View$OnClickListener;)V", cl);
         addw(env, side, b, -1, -2, 0.0);
     }
-    addw(env, body, side, 260, -1, 0.0);
+    addw(env, body, side, SIDE_W, -1, 0.0);
 
+    /* text page: Home / Tab 3 */
     jobject content = label(env, ctx, TV, "Welcome to CorkScrew", 20.0);
     if (!content) return 0;
     vcall(env, content, TV, "setGravity", "(I)V", 17);
     vcall(env, content, VW, "setBackgroundColor", "(I)V", (jint)0xFF1A1A1Au);
     addw(env, body, content, 0, -1, 1.0);
+
+    /* Text Editor page: big editor + Clear button (hidden until its tab is picked) */
+    jobject page = mk(env, LL, CTX, ctx);
+    if (!page) return 0;
+    vcall(env, page, LL, "setOrientation", "(I)V", 1);
+    vcall(env, page, VW, "setBackgroundColor", "(I)V", (jint)0xFF1A1A1Au);
+
+    jobject edit = label(env, ctx, "android/widget/EditText", "", 16.0);
+    if (!edit) return 0;
+    vcall(env, edit, TV, "setHint", "(Ljava/lang/CharSequence;)V", env->NewStringUTF("Type here..."));
+    vcall(env, edit, TV, "setHintTextColor", "(I)V", (jint)0xFF777777u);
+    vcall(env, edit, TV, "setGravity", "(I)V", 51);                /* top-left */
+    vcall(env, edit, TV, "setInputType", "(I)V", 0x20001);         /* text + multi-line */
+    vcall(env, edit, TV, "setImeOptions", "(I)V", 0x12000000);     /* no fullscreen keyboard UI */
+    vcall(env, edit, VW, "setBackgroundColor", "(I)V", (jint)0xFF111111u);
+    vcall(env, edit, VW, "setPadding", "(IIII)V", 24, 24, 24, 24);
+    addw(env, page, edit, -1, 0, 1.0);
+
+    jobject bar = mk(env, LL, CTX, ctx);
+    if (bar) {
+        vcall(env, bar, LL, "setOrientation", "(I)V", 0);
+        vcall(env, bar, LL, "setGravity", "(I)V", 5);              /* right-aligned */
+        vcall(env, bar, VW, "setPadding", "(IIII)V", 12, 12, 12, 12);
+        jobject clr = label(env, ctx, "android/widget/Button", "Clear", 14.0);
+        if (clr) {
+            vcall(env, clr, VW, "setBackgroundColor", "(I)V", (jint)0xFF3A3A3Au);
+            jobject cl = clicker(env, 4);
+            if (cl) vcall(env, clr, VW, "setOnClickListener", "(Landroid/view/View$OnClickListener;)V", cl);
+            addw(env, bar, clr, -2, -2, 0.0);
+        }
+        addw(env, page, bar, -1, -2, 0.0);
+    }
+    vis(env, page, 0);
+    addw(env, body, page, 0, -1, 1.0);
+
     addw(env, root, body, -1, 0, 1.0);
 
-    /* NOT_FOCUSABLE | NOT_TOUCH_MODAL (40) so the game keeps focus */
-    jobject plp = mk(env, LP, "(IIIII)V", PW, PH, 2038, 40, -3);
+    /* starts NOT_FOCUSABLE | NOT_TOUCH_MODAL (40); size is set on every open */
+    jobject plp = mk(env, LP, "(IIIII)V", DEF_PW, DEF_PH, 2038, 40, -3);
     if (!plp) return 0;
     setI(env, plp, LP, "gravity", 51);
     setI(env, plp, LP, "x", 60);
     setI(env, plp, LP, "y", 150);
+    setI(env, plp, LP, "softInputMode", 32);   /* pan the window when the keyboard opens */
 
     /* drag the whole panel by the top bar */
     jobject pdrag = mk(env, "com/rokori/client/Drag", DRAGSIG, wm, plp, root);
@@ -295,6 +351,8 @@ static int build(JNIEnv *env, jobject ctx0) {
     g_panel = env->NewGlobalRef(root);
     g_plp = env->NewGlobalRef(plp);
     g_content = env->NewGlobalRef(content);
+    g_page = env->NewGlobalRef(page);
+    g_edit = env->NewGlobalRef(edit);
     return 1;
 }
 
@@ -321,10 +379,15 @@ Java_com_roblox_client_ActivityNativeMain_toggle(JNIEnv *env, jclass cls) {
     if (!g_panel || !g_attached || g_open || g_closing) return;
     int sw, sh;
     screen(env, &sw, &sh);
+    if (sw > sh) { g_pw = sw * LAND_W / 100; g_ph = sh * LAND_H / 100; }
+    else         { g_pw = sw * PORT_W / 100; g_ph = sh * PORT_H / 100; }
+    setI(env, g_plp, LP, "width", g_pw);
+    setI(env, g_plp, LP, "height", g_ph);
+
     int bx = getI(env, g_blp, LP, "x");
     int by = getI(env, g_blp, LP, "y");
-    int px = clampi(bx, 0, sw - PW);
-    int py = clampi(by, 0, sh - PH);
+    int px = clampi(bx, 0, sw - g_pw);
+    int py = clampi(by, 0, sh - g_ph);
     g_pivx = bx - px;
     g_pivy = by - py;
     setI(env, g_plp, LP, "x", px);
@@ -332,10 +395,11 @@ Java_com_roblox_client_ActivityNativeMain_toggle(JNIEnv *env, jclass cls) {
 
     detach(env);
     g_open = 1;
+    applyFocus(env);
     vcall(env, g_panel, VW, "setPivotX", "(F)V", (double)g_pivx);
     vcall(env, g_panel, VW, "setPivotY", "(F)V", (double)g_pivy);
-    vcall(env, g_panel, VW, "setScaleX", "(F)V", (double)BS / PW);
-    vcall(env, g_panel, VW, "setScaleY", "(F)V", (double)BS / PH);
+    vcall(env, g_panel, VW, "setScaleX", "(F)V", (double)BS / g_pw);
+    vcall(env, g_panel, VW, "setScaleY", "(F)V", (double)BS / g_ph);
     vcall(env, g_panel, VW, "setAlpha", "(F)V", 0.0);
     g_attached = addv(env, g_panel, g_plp);
     if (g_attached) animTo(env, g_panel, 1.0, 1.0, 1.0, (jlong)220, nullptr);
@@ -349,7 +413,7 @@ Java_com_roblox_client_ActivityNativeMain_closed(JNIEnv *env, jclass cls) {
     if (g_started > 0) attach(env);
 }
 
-/* 0 = X (collapse panel into the button), 1 = Home, 2/3 = other tabs */
+/* 0 = X (collapse panel), 1 = Home, 2 = Text Editor, 3 = Tab 3, 4 = Clear */
 JNIEXPORT void JNICALL
 Java_com_roblox_client_ActivityNativeMain_act(JNIEnv *env, jclass cls, jint id) {
     if (!g_panel) return;
@@ -358,11 +422,24 @@ Java_com_roblox_client_ActivityNativeMain_act(JNIEnv *env, jclass cls, jint id) 
         jobject run = mk(env, "com/rokori/client/Run", "()V");
         if (!run) { finishClose(env); attach(env); return; }   /* no Run class: close instantly */
         g_closing = 1;
-        animTo(env, g_panel, (double)BS / PW, (double)BS / PH, 0.0, (jlong)180, run);
+        animTo(env, g_panel, (double)BS / g_pw, (double)BS / g_ph, 0.0, (jlong)180, run);
         return;
     }
-    vcall(env, g_content, TV, "setText", "(Ljava/lang/CharSequence;)V",
-        env->NewStringUTF(id == 1 ? "Welcome to CorkScrew" : "Coming Soon"));
+    if (id == 4) {
+        vcall(env, g_edit, TV, "setText", "(Ljava/lang/CharSequence;)V", env->NewStringUTF(""));
+        return;
+    }
+    g_tab = id;
+    if (id == 2) {
+        vis(env, g_content, 0);
+        vis(env, g_page, 1);
+    } else {
+        vcall(env, g_content, TV, "setText", "(Ljava/lang/CharSequence;)V",
+            env->NewStringUTF(id == 1 ? "Welcome to CorkScrew" : "Coming Soon"));
+        vis(env, g_page, 0);
+        vis(env, g_content, 1);
+    }
+    applyFocus(env);
 }
 
 }  /* extern "C" */
