@@ -1,4 +1,4 @@
-"CorkScrew" (https://raw.githubusercontent.com/nivalox/CorkScrew/refs/heads/main/assets/images/corkscrew.png) CorkScrew
+# ![CorkScrew](https://raw.githubusercontent.com/nivalox/CorkScrew/refs/heads/main/assets/images/corkscrew.png) CorkScrew
 
 CorkScrew is an open-source Rokori Executor built with C++ and Smali, it has a real Lua Virtual Machine (VM) and a dedicated Lua execution environment.
 
