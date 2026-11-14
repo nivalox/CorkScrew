@@ -1,5 +1,5 @@
 <h1>
-  <img src="https://raw.githubusercontent.com/nivalox/CorkScrew/refs/heads/main/assets/images/corkscrew.png" width="32" />
+  <img src="https://raw.githubusercontent.com/nivalox/CorkScrew/refs/heads/main/assets/images/corkscrew.png" width="128" />
   CorkScrew
 </h1>
 
