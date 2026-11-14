@@ -1,7 +1,8 @@
-<h1>
+<p align="center">
   <img src="https://raw.githubusercontent.com/nivalox/CorkScrew/refs/heads/main/assets/images/corkscrew.png" width="128" />
-  CorkScrew
-</h1>
+</p>
+
+# CorkScrew
 
 CorkScrew is an open-source Rokori Executor built with C++ and Smali, it has a real Lua Virtual Machine (VM) and a dedicated Lua execution environment.
 
