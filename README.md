@@ -35,4 +35,6 @@ This project is licensed under the MIT License. See the "LICENSE" (LICENSE) file
 
 Special thanks to Rokori for banning me(and now my alt, you have fueled a fire)1!1!1!1!
 
+p.s: You can claim we are detected, doesn't mean we are, you have 0 integrity checks in your 1:1 ripoff of the Roblox Android Client.
+
 This is what you get. :>
