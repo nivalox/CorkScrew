@@ -33,6 +33,6 @@ This project is licensed under the MIT License. See the "LICENSE" (LICENSE) file
 
 🤑 Acknowledgements
 
-Special thanks to Rokori for banning me1!1!1!1!
+Special thanks to Rokori for banning me(and now my alt, you have fueled a fire)1!1!1!1!
 
 This is what you get. :>
