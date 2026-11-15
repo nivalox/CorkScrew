@@ -4,7 +4,7 @@
 
 # CorkScrew
 
-CorkScrew is an open-source Rokori Executor built with C++ and Smali, it has a real Lua Virtual Machine (VM) and a dedicated Lua execution environment.
+CorkScrew is an open-source Rokori Executor built with C++ and Smali, it has a real LuaU Virtual Machine (VM) and a dedicated LuaU execution environment.
 
 📑 Features
 
