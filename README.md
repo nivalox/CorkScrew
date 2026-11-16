@@ -4,7 +4,7 @@
 
 # CorkScrew
 
-CorkScrew is an open-source Rokori Executor built with C++ and Smali, it has a real LuaU Virtual Machine (VM) and a dedicated LuaU execution environment.
+CorkScrew is an closed-source Rokori Executor built with C++ and Smali, it has a real LuaU Virtual Machine (VM) and a dedicated LuaU execution environment.
 
 📑 Features
 
@@ -12,18 +12,12 @@ CorkScrew is an open-source Rokori Executor built with C++ and Smali, it has a r
 - Editor - Built-in script editor.
 - Console - Execution output and logging.
 
-⚙️ Technical Overview
-
-CorkScrew is completely open source and written primarily in C++ and Smali.
-
-Unlike projects that rely on simulated environments, CorkScrew features a real LuaU VM with its own LuaU execution environment.
-
 📂 Project Structure
 
 - Native components written in C++.
 - Smali-based Android components.
-- Integrated Lua Virtual Machine.
-- Dedicated Lua environment.
+- Integrated LuaU Virtual Machine.
+- Dedicated LuaU environment.
 
 🗨️ Discord
 
@@ -37,7 +31,7 @@ This project is licensed under the MIT License. See the "LICENSE" (LICENSE) file
 
 🤑 Acknowledgements
 
-Special thanks to Rokori for banning me(and now my alt, you have fueled a fire)1!1!1!1!
+Special thanks to Rokori for banning me(and now my alt, you have fueled a fire)[and now my other alt]1!1!1!1!
 
 p.s: You can claim we are detected, doesn't mean we are, you have 0 integrity checks in your 1:1 ripoff of the Roblox Android Client.
 
