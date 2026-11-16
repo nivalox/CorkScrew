@@ -25,6 +25,10 @@ Unlike projects that rely on simulated environments, CorkScrew features a real L
 - Integrated Lua Virtual Machine.
 - Dedicated Lua environment.
 
+🗨️ Discord
+
+Join the Discord for CorkScrew @ https://discord.gg/VBpXt2subN
+
 📜 License
 
 This project is licensed under the MIT License. See the "LICENSE" (LICENSE) file for more information.
