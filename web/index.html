@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#1c1013">
-<title>CorkScrew – a script executor for Rokori on Android</title>
+<title>CorkScrew – a script executor for Roblox on Android</title>
 <meta name="description" content="CorkScrew is a script executor for Roblox on Android.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍾</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -147,13 +148,13 @@
 </footer>
 
 <script>
-  // Versions come from versions.txt in this same directory (/web).
+  // Versions come from /web/versions.txt (absolute path, so it works from / and from /web/index.html).
   // Format, one per line:  CORK: 0.2.2   ROKORI: 2.742
   (async function () {
     const cork = document.getElementById('v-cork');
     const rokori = document.getElementById('v-rokori');
     try {
-      const res = await fetch('versions.txt?t=' + Date.now(), { cache: 'no-store' });
+      const res = await fetch('/web/versions.txt?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const map = {};
       (await res.text()).split(/\r?\n/).forEach(function (line) {
